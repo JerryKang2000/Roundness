@@ -1,0 +1,52 @@
+name: Build PySide6 Android APK
+
+on:
+  push:
+  #   branches: [ "main" ]  # 可自行指定觸發的分支
+  workflow_dispatch:        # 允許你在 GitHub 網頁上手動點擊按鈕觸發編譯
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 簽出程式碼
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. 設定 Python 環境
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3. 設定 Java (Android SDK / Gradle 需要 Java 17)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 4. 安裝建置工具與 PySide6 部署工具
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install buildozer cython pyside6
+          # 如果有自訂的 requirements.txt 可以一併安裝
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      # 5. 初始化並執行 PySide6 Android 部署
+      - name: Build APK with pyside6-android-deploy
+        run: |
+          # 產生預設的 pysidedeploy.spec 部署設定檔
+          pyside6-android-deploy --init
+          
+          # 開始編譯成 Android APK (debug 模式)
+          pyside6-android-deploy --mode debug
+
+      # 6. 上傳編譯好的 APK 檔案至 GitHub 供下載
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyside6-app-apk
+          path: bin/*.apk
